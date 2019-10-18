@@ -156,21 +156,34 @@ def uniformCostSearch(problem):
     "*** YOUR CODE HERE ***"
     discovered = set()
     fringe = util.PriorityQueue() 
+    heap = set() #keeping track of what's in the heap
     discovered.add(problem.getStartState())
-    fringe.push(problem.getStartState(), 0) 
+    fringe.push(problem.getStartState(), 0)
+    heap.add(problem.getStartState())
     directions = {}
+    cost_from_start = {problem.getStartState(): 0}
     goal_node = None
     
     while not fringe.isEmpty():
         current_node = fringe.pop()
+        heap.remove(current_node)
         if (problem.isGoalState(current_node)):
             goal_node = current_node
             break
+        discovered.add(current_node)
         successors = problem.getSuccessors(current_node)
         for neighbor, action, cost in successors:
-            if neighbor not in discovered:
-                discovered.add(neighbor)
-                fringe.push(neighbor, cost)
+            total_cost = cost_from_start[current_node] + cost
+            print(current_node, total_cost, neighbor)
+            if neighbor not in discovered and neighbor not in heap:
+                fringe.update(neighbor, total_cost)
+                heap.add(neighbor)
+                cost_from_start[neighbor] = total_cost
+                directions[neighbor] = current_node, action
+            elif neighbor in heap and cost_from_start[neighbor] > total_cost:
+                fringe.update(neighbor, total_cost)
+                heap.add(neighbor) 
+                cost_from_start[neighbor] = total_cost
                 directions[neighbor] = current_node, action
     
     if goal_node is None:
@@ -195,8 +208,53 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    discovered = set()
+    fringe = util.PriorityQueue() 
+    heap = set() #keeping track of what's in the heap
+    discovered.add(problem.getStartState())
+    fringe.push(problem.getStartState(), 0)
+    heap.add(problem.getStartState())
+    directions = {}
+    cost_from_start = {problem.getStartState(): 0}
+    cost_from_nodes = {problem.getStartState(): 0}
+    goal_node = None
+    
+    while not fringe.isEmpty():
+        current_node = fringe.pop()
+        heap.remove(current_node)
+        if (problem.isGoalState(current_node)):
+            goal_node = current_node
+            break
+        discovered.add(current_node)
+        successors = problem.getSuccessors(current_node)
+        for neighbor, action, cost in successors:
+            cost_between_nodes = cost_from_nodes[current_node] + cost
+            total_cost = cost_between_nodes + heuristic(neighbor, problem)
+            print(current_node, cost_between_nodes, total_cost, neighbor)
+            if neighbor not in discovered and neighbor not in heap:
+                fringe.update(neighbor, total_cost)
+                heap.add(neighbor)
+                cost_from_nodes[neighbor] = cost_between_nodes
+                cost_from_start[neighbor] = total_cost
+                directions[neighbor] = current_node, action
+            elif neighbor in heap and cost_from_start[neighbor] > total_cost:
+                fringe.update(neighbor, total_cost)
+                heap.add(neighbor) 
+                cost_from_nodes[neighbor] = cost_between_nodes
+                cost_from_start[neighbor] = total_cost
+                directions[neighbor] = current_node, action
+    
+    if goal_node is None:
+        return []
+    path = []
+    current_node = goal_node
+    while current_node is not problem.getStartState():
+        parent, direction = directions[current_node]
+        path.append(direction)
+        current_node = parent
+    path.reverse()
 
+    return path
 
 # Abbreviations
 bfs = breadthFirstSearch
