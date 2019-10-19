@@ -87,16 +87,20 @@ def depthFirstSearch(problem):
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
     "*** YOUR CODE HERE ***"
-    discovered = set()
+    discovered = set() #a set to keep track of discovered nodes
     fringe = util.Stack() 
-    fringe.push(problem.getStartState()) 
-    directions = {}
+    fringe.push(problem.getStartState()) #push the start state onto the stack
+    directions = {} #a directions dictionary to efficiently keep track of each node's directions
     goal_node = None
     
-    while not fringe.isEmpty():
+    #while the stack is not empty, we iterate through each node on the stack
+    #we add the current node to the discovered set so we know that is has been searched
+    #we then push the successors onto the stack(if they are not yet discovered)  and add their directions into our dictionary
+    #then go back through the while loop and do it all again
+    while not fringe.isEmpty(): 
         current_node = fringe.pop()
         discovered.add(current_node)
-        if (problem.isGoalState(current_node)):
+        if (problem.isGoalState(current_node)): #checking if end has been reached and exit
             goal_node = current_node
             break
         successors = problem.getSuccessors(current_node)
@@ -105,31 +109,38 @@ def depthFirstSearch(problem):
                 fringe.push(neighbor)
                 directions[neighbor] = current_node, action
     
+    #if no goal_node is found after traversing the graph, no solution is returned
     if goal_node is None:
         return []
     path = []
     current_node = goal_node
+    #moving backwards from the goal node, 
+    #appending all the directions that we took to get to it into a list
     while current_node is not problem.getStartState():
         parent, direction = directions[current_node]
         path.append(direction)
         current_node = parent
-    path.reverse()
+    path.reverse() #since the directions are added in reverse order, we reverse the list to get the final path
 
     return path
                 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    discovered = set()
-    fringe = util.Queue() 
-    discovered.add(problem.getStartState())
-    fringe.push(problem.getStartState()) 
-    directions = {}
+    discovered = set() #discovered set to keep track of discovered nodes
+    fringe = util.Queue()
+    discovered.add(problem.getStartState()) #adding the start state into the discovered set
+    fringe.push(problem.getStartState())  #pushing the start state into the queue
+    directions = {} #directions dictionary
     goal_node = None
     
+    #while the queue is not empty, we look at the first node in the queue
+    #we then add successors to discovered set(if they are not) and push them onto the queue
+    #we then keep track of the successors' directions in the direction dictionary
+    #do this again until the queue is empty
     while not fringe.isEmpty():
         current_node = fringe.pop()
-        if (problem.isGoalState(current_node)):
+        if (problem.isGoalState(current_node)): #if it is the goal, we break out of the loop
             goal_node = current_node
             break
         successors = problem.getSuccessors(current_node)
@@ -139,35 +150,46 @@ def breadthFirstSearch(problem):
                 fringe.push(neighbor)
                 directions[neighbor] = current_node, action
     
+    #if no goal node, return no solution
     if goal_node is None:
         return []
     path = []
     current_node = goal_node
-    while current_node is not problem.getStartState():
+    #going through the directions from goal_node to start node, 
+    #adding each direction into a list
+    while current_node != problem.getStartState():
+        print(f"current node bfs {current_node}")
         parent, direction = directions[current_node]
         path.append(direction)
         current_node = parent
-    path.reverse()
-
+    path.reverse() #reversing the list to get the correct order
     return path
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
+    #just setting some variables, similar to above functions
     discovered = set()
     fringe = util.PriorityQueue() 
     heap = set() #keeping track of what's in the heap
     discovered.add(problem.getStartState())
     fringe.push(problem.getStartState(), 0)
-    heap.add(problem.getStartState())
+    heap.add(problem.getStartState()) #adding our start state to the heap (^keeping track)
     directions = {}
     cost_from_start = {problem.getStartState(): 0}
     goal_node = None
     
+    #while the priority queue is not empty,
+    #we observe the current node (with lowest priority), and add is to our discovered set
+    #we iterate through the successors, keeping track of total cost
+    #if the neighbor is not in discovered nor in the heap, we add this successor into the queue (and heap set)
+    #we add our cost for this particular node into a cost dictionary, then we add our directions to a direction dictionary
+    #if the neighbor is in the heap and current documented cost is larger than total cost, we update it to the new lower cost
+    #loop and do it all again
     while not fringe.isEmpty():
         current_node = fringe.pop()
-        heap.remove(current_node)
-        if (problem.isGoalState(current_node)):
+        heap.remove(current_node) #remove the node from the heap set
+        if (problem.isGoalState(current_node)): #once goal state is reached, leave loop
             goal_node = current_node
             break
         discovered.add(current_node)
@@ -180,16 +202,18 @@ def uniformCostSearch(problem):
                 heap.add(neighbor)
                 cost_from_start[neighbor] = total_cost
                 directions[neighbor] = current_node, action
-            elif neighbor in heap and cost_from_start[neighbor] > total_cost:
+            elif neighbor in heap and cost_from_start[neighbor] > total_cost: #update neighbor if better option is found
                 fringe.update(neighbor, total_cost)
                 heap.add(neighbor) 
                 cost_from_start[neighbor] = total_cost
                 directions[neighbor] = current_node, action
     
+    #is no goal node, return no solution
     if goal_node is None:
         return []
     path = []
     current_node = goal_node
+    #creating path from dictionary
     while current_node is not problem.getStartState():
         parent, direction = directions[current_node]
         path.append(direction)
@@ -208,6 +232,7 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
+    #setsetting variables like in algorithms above (same idea)
     discovered = set()
     fringe = util.PriorityQueue() 
     heap = set() #keeping track of what's in the heap
@@ -219,6 +244,12 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     cost_from_nodes = {problem.getStartState(): 0}
     goal_node = None
     
+    #while the priority queue is not empty,
+    #we look at the current node (pop it), remove it from our heap set as well
+    #add it to discovered set and then iterate through successors
+    #same idea as ufs, but we need to keep track of the cost between nodes rather 
+    #than simply the total cost so we can keep track of which path is the best option 
+    #with the heuristic taken into consideration
     while not fringe.isEmpty():
         current_node = fringe.pop()
         heap.remove(current_node)
@@ -227,28 +258,29 @@ def aStarSearch(problem, heuristic=nullHeuristic):
             break
         discovered.add(current_node)
         successors = problem.getSuccessors(current_node)
-        for neighbor, action, cost in successors:
-            cost_between_nodes = cost_from_nodes[current_node] + cost
+        for neighbor, action, cost in successors: 
+            cost_between_nodes = cost_from_nodes[current_node] + cost #keeping track of the cost between nodes (without heuristic)
             total_cost = cost_between_nodes + heuristic(neighbor, problem)
-            print(current_node, cost_between_nodes, total_cost, neighbor)
             if neighbor not in discovered and neighbor not in heap:
-                fringe.update(neighbor, total_cost)
+                fringe.update(neighbor, total_cost) 
                 heap.add(neighbor)
-                cost_from_nodes[neighbor] = cost_between_nodes
-                cost_from_start[neighbor] = total_cost
-                directions[neighbor] = current_node, action
-            elif neighbor in heap and cost_from_start[neighbor] > total_cost:
+                cost_from_nodes[neighbor] = cost_between_nodes #the cost from initial node to current node
+                cost_from_start[neighbor] = total_cost #the cost from the initial node to the current node + th the heuristitc value
+                directions[neighbor] = current_node, action #updating directions
+            elif neighbor in heap and cost_from_start[neighbor] > total_cost: #updating successor if a better option is found
                 fringe.update(neighbor, total_cost)
                 heap.add(neighbor) 
                 cost_from_nodes[neighbor] = cost_between_nodes
                 cost_from_start[neighbor] = total_cost
                 directions[neighbor] = current_node, action
     
+    #return nothing if goal node not found
     if goal_node is None:
         return []
     path = []
     current_node = goal_node
-    while current_node is not problem.getStartState():
+    #creating the path from our direction dictionary
+    while current_node != problem.getStartState():
         parent, direction = directions[current_node]
         path.append(direction)
         current_node = parent
