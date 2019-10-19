@@ -40,6 +40,8 @@ from game import Actions
 import util
 import time
 import search
+import math
+import itertools
 
 class GoWestAgent(Agent):
     "An agent that goes West until it can't."
@@ -288,31 +290,21 @@ class CornersProblem(search.SearchProblem):
         # Please add any code here which you would like to use
         # in initializing the problem
         "*** YOUR CODE HERE ***"
-        self.visited_corners = set()
 
     def getStartState(self):
         """
         Returns the start state (in your state space, not the full Pacman state
         space)
         """
-        print(self.startingPosition)
         #the state space is a starting node and a set to keep track of visited corners
-        return self.startingPosition
+        return self.startingPosition, False, False, False, False
 
     def isGoalState(self, state):
         """
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
-        current_node = state #getting the current node
-        if current_node in self.corners:
-            self.visited_corners.add(current_node)
-            if (len(self.visited_corners) == 4): #if the set is of length 4, this implies that 
-                return True                 #all corners have been visited
-            else:
-                return False
-        return False
-
+        return state[1:5] == (True, True, True, True)
 
     def getSuccessors(self, state):
         """
@@ -326,7 +318,8 @@ class CornersProblem(search.SearchProblem):
         """
 
         successors = []
-        cost = 1 
+        cost = 1
+
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
             # Add a successor state to the successor list if the action is legal
             # Here's a code snippet for figuring out whether a new position hits a wall:
@@ -336,21 +329,17 @@ class CornersProblem(search.SearchProblem):
             #   hitsWall = self.walls[nextx][nexty]
 
             "*** YOUR CODE HERE ***"
-            x,y = state
-            print(state)
+            x,y = state[0]
             dx, dy = Actions.directionToVector(action)
             nextx, nexty = int(x + dx), int(y + dy)
             hitsWall = self.walls[nextx][nexty]
             if not hitsWall:
-                successor_visited_corners = set(self.visited_corners) 
-                next_node = (nextx, nexty)
-                if next_node in self.corners: 
-                    successor_visited_corners.add(next_node)
-                successors.append((next_node, action, cost))
+                position = (nextx, nexty)
+                successor = (position, state[1] or position == self.corners[0], state[2] or
+                position == self.corners[1], state[3] or position == self.corners[2],
+                state[4] or position == self.corners[3]) 
+                successors.append((successor, action, cost))
             
-        print(successors)
-        print(self.visited_corners)
-        print(successor_visited_corners)
         self._expanded += 1 # DO NOT CHANGE
         return successors
 
@@ -385,24 +374,26 @@ def cornersHeuristic(state, problem):
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
     
     "*** YOUR CODE HERE ***"
-    current_node = state
-    visited_corners = self.vcorners
-    unvisited_corners = set()
-    corner_distances = {}
-    sum = 0
-    for corner in corners:
-        if corner not in visited_corners:
-            unvisited_corners.add(corner)
+    unvisited_corners = []
+    for visited, corner in zip(state[1:5], corners): #getting a list of all the unseen nodes
+        if (visited is False):
+            unvisited_corners.append(corner)
 
+    total_distance = 0
+    current_position = state[0]
+    corner_distances = {} #initializing a dictionary to keep track of corner distances
     while len(unvisited_corners) > 0:
+        min_distance = math.inf
+        closest_corner = None
         for corner in unvisited_corners:
-            manhattan_distance = (corner[0], corner[1])  #getting and storing the manhattan differences
-            corner_distances[corner] = manhattan_distance   #for each corner in a dictionary
-            min_distance = min(corner_distances.items(), key = lambda x: x[1]) #getting the min manhattan distance
-            node, distance = min_distance #unpacking the dictionary entry
-            del unvisited_corners[node]
-            sum = sum + distance
-    return 0 # Default to trivial solution
+            manhattan_distance = abs(current_position[0] - corner[0]) + abs(current_position[1] - corner[1])#getting and storing the manhattan differences
+            if  manhattan_distance < min_distance:
+                min_distance = manhattan_distance
+                closest_corner = corner
+            unvisited_corners.remove(corner)
+        current_position = closest_corner
+        total_distance = total_distance + min_distance
+    return total_distance/2000 # Default to trivial solution
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
